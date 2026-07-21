@@ -10,10 +10,24 @@ import (
 	"bilecik/internal/subscription"
 )
 
+type Deps struct {
+	SubscriptionRepository *subscription.Repository
+	BelaviaClient          *belavia.Client
+	ObservationRepository  *observation.Repository
+}
+
 type Poller struct {
 	subscriptionRepository *subscription.Repository
 	belaviaClient          *belavia.Client
 	observationRepository  *observation.Repository
+}
+
+func New(deps Deps) *Poller {
+	return &Poller{
+		subscriptionRepository: deps.SubscriptionRepository,
+		belaviaClient:          deps.BelaviaClient,
+		observationRepository:  deps.ObservationRepository,
+	}
 }
 
 func (p *Poller) Run(ctx context.Context) error {
