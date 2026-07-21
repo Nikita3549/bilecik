@@ -53,6 +53,7 @@ func registerCommandMenu(api *tgbotapi.BotAPI) error {
 		tgbotapi.BotCommand{Command: "subscribe", Description: "Подписаться на цену рейса"},
 		tgbotapi.BotCommand{Command: "list", Description: "Мои подписки"},
 		tgbotapi.BotCommand{Command: "unsubscribe", Description: "Удалить подписку"},
+		tgbotapi.BotCommand{Command: "cancel", Description: "Прервать текущий диалог"},
 		tgbotapi.BotCommand{Command: "help", Description: "Помощь"},
 	)
 	_, err := api.Request(cmds)

@@ -4,7 +4,6 @@ import (
 	"context"
 	"log"
 	"strings"
-	"time"
 
 	"bilecik/internal/subscription"
 
@@ -15,24 +14,26 @@ import (
 const helpText = `Я слежу за ценами на рейсы Belavia и пишу, когда дешевеет.
 
 Команды:
-/subscribe FROM TO ДАТА_ОТ ДАТА_ДО [ЦЕНА] — подписаться на маршрут
+/subscribe — подписаться на маршрут (проведу по шагам)
 /list — мои подписки
 /unsubscribe ID — удалить подписку
-/help — эта справка
-
-Пример:
-/subscribe MSQ IST 2026-08-01 2026-08-10 250
-
-FROM и TO — IATA-коды аэропортов (3 латинские буквы).
-Даты — в формате ГГГГ-ММ-ДД. ЦЕНА (в BYN) необязательна: с ней я напишу
-только когда билет станет дешевле указанной суммы.`
+/cancel — прервать текущий диалог
+/help — эта справка`
 
 type Handlers struct {
-	subs *subscription.Repository
+	subs     *subscription.Repository
+	sessions *sessions
 }
 
 func NewHandlers(subs *subscription.Repository) *Handlers {
-	return &Handlers{subs: subs}
+	return &Handlers{
+		subs:     subs,
+		sessions: newSessions(),
+	}
+}
+
+func (h *Handlers) Interceptor() Interceptor {
+	return h.intercept
 }
 
 func (h *Handlers) Start(ctx context.Context, api *tgbotapi.BotAPI, msg *tgbotapi.Message) {
@@ -44,28 +45,17 @@ func (h *Handlers) Help(ctx context.Context, api *tgbotapi.BotAPI, msg *tgbotapi
 }
 
 func (h *Handlers) Subscribe(ctx context.Context, api *tgbotapi.BotAPI, msg *tgbotapi.Message) {
-	parsed, err := parseSubscribeArgs(msg.CommandArguments(), time.Now())
-	if err != nil {
-		send(api, msg.Chat.ID, "❌ "+err.Error()+
-			"\n\nПример: /subscribe MSQ IST 2026-08-01 2026-08-10 250")
+	h.sessions.start(msg.Chat.ID)
+	send(api, msg.Chat.ID, "Откуда летим? Пришли IATA-код города вылета (например MSQ).\n\nВ любой момент — /cancel.")
+}
+
+func (h *Handlers) Cancel(ctx context.Context, api *tgbotapi.BotAPI, msg *tgbotapi.Message) {
+	if _, ok := h.sessions.get(msg.Chat.ID); !ok {
+		send(api, msg.Chat.ID, "Нечего отменять.")
 		return
 	}
-
-	sub := &subscription.Subscription{
-		TelegramID: msg.Chat.ID,
-		FromIATA:   parsed.FromIATA,
-		ToIATA:     parsed.ToIATA,
-		DateFrom:   parsed.DateFrom,
-		DateTo:     parsed.DateTo,
-		Threshold:  parsed.Threshold,
-	}
-	if err := h.subs.Create(ctx, sub); err != nil {
-		log.Printf("subscribe: create failed: %v", err)
-		send(api, msg.Chat.ID, "Не смог сохранить подписку, попробуй ещё раз позже.")
-		return
-	}
-
-	send(api, msg.Chat.ID, "✅ Подписка создана:\n"+formatSubscription(*sub))
+	h.sessions.delete(msg.Chat.ID)
+	send(api, msg.Chat.ID, "Отменил. Начать заново — /subscribe.")
 }
 
 func (h *Handlers) List(ctx context.Context, api *tgbotapi.BotAPI, msg *tgbotapi.Message) {
