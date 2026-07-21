@@ -19,5 +19,5 @@ COPY --from=build /go/bin/migrate /usr/local/bin/migrate
 COPY --from=build /opt/api/main /opt/api/main
 
 CMD . ./.env \
-  && /usr/local/bin/migrate -path migrations -database "postgres://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}?sslmode=disable" up \
+  && /usr/local/bin/migrate -path migrations -database "postgres://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:5432/${DB_NAME}?sslmode=disable" up \
   && exec ./main
