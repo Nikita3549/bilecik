@@ -38,7 +38,7 @@ func (p *Poller) Run(ctx context.Context) error {
 
 	var errs []error
 	for _, t := range targets {
-		obs, err := p.belaviaClient.GetFromTo(t.FromIATA, t.ToIATA, t.DateFrom, t.DateTo)
+		obs, err := p.belaviaClient.GetFromTo(ctx, t.FromIATA, t.ToIATA, t.DateFrom, t.DateTo)
 		if err != nil {
 			errs = append(errs, fmt.Errorf("Poller Run error, %s->%s, err %v", t.FromIATA, t.ToIATA, err))
 			continue

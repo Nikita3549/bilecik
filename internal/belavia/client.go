@@ -2,8 +2,10 @@ package belavia
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"io"
+	"math/rand/v2"
 	"net/http"
 	"time"
 )
@@ -11,15 +13,24 @@ import (
 // Belavia API constraints. DO NOT CHANGE + read docs
 const apiDaysCount = 7
 
-type Client struct{}
+const (
+	defaultMinPause = 2 * time.Second
+	defaultMaxPause = 8 * time.Second
+)
 
-func NewClient() *Client {
-	return &Client{}
+type Client struct {
+	minPause time.Duration
+	maxPause time.Duration
 }
 
-func (c *Client) GetFromTo(from, to string, startDate, endDate time.Time) ([]Observation, error) {
-	// endDate inclusive: a subscription with startDate == endDate must still
-	// cover that single day, so count both bounds.
+func NewClient() *Client {
+	return &Client{
+		minPause: defaultMinPause,
+		maxPause: defaultMaxPause,
+	}
+}
+
+func (c *Client) GetFromTo(ctx context.Context, from, to string, startDate, endDate time.Time) ([]Observation, error) {
 	totalDays := int(endDate.Sub(startDate).Hours()/24) + 1
 	if totalDays <= 0 {
 		return nil, nil
@@ -27,8 +38,12 @@ func (c *Client) GetFromTo(from, to string, startDate, endDate time.Time) ([]Obs
 
 	var observations []Observation
 	for offset := 0; offset < totalDays; offset += apiDaysCount {
+		if err := c.pause(ctx); err != nil {
+			return nil, err
+		}
+
 		chunkStart := startDate.AddDate(0, 0, offset)
-		chunk, err := fetchWindow(from, to, chunkStart)
+		chunk, err := fetchWindow(ctx, from, to, chunkStart)
 		if err != nil {
 			return nil, err
 		}
@@ -46,14 +61,40 @@ func (c *Client) GetFromTo(from, to string, startDate, endDate time.Time) ([]Obs
 	return trimmed, nil
 }
 
-func fetchWindow(from, to string, startDate time.Time) ([]Observation, error) {
+func (c *Client) pause(ctx context.Context) error {
+	d := c.minPause
+	if c.maxPause > c.minPause {
+		d += rand.N(c.maxPause - c.minPause)
+	}
+	if d <= 0 {
+		return ctx.Err()
+	}
+
+	timer := time.NewTimer(d)
+	defer timer.Stop()
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-timer.C:
+		return nil
+	}
+}
+
+func fetchWindow(ctx context.Context, from, to string, startDate time.Time) ([]Observation, error) {
 	data := buildOneWayRequest(from, to, startDate)
 	reqBody, err := json.Marshal(data)
 	if err != nil {
 		return nil, err
 	}
 
-	resp, err := http.Post("https://webapi.belavia.by/graphql/query/nemo", "application/json", bytes.NewReader(reqBody))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "https://webapi.belavia.by/graphql/query/nemo", bytes.NewReader(reqBody))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
