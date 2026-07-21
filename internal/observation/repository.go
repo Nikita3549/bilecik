@@ -1,17 +1,24 @@
 package observation
 
-import db "bilecik/pkg"
+import (
+	"context"
 
-type ObservationRepository struct {
+	db "bilecik/pkg"
+)
+
+type Repository struct {
 	*db.DB
 }
 
-func NewObservationRepository(db *db.DB) *ObservationRepository {
-	return &ObservationRepository{
+func NewRepository(db *db.DB) *Repository {
+	return &Repository{
 		DB: db,
 	}
 }
 
-func (repo *ObservationRepository) Create(priceObservation *PriceObservation) error {
-	return repo.DB.Create(priceObservation).Error
+func (repo *Repository) CreateMany(ctx context.Context, obs []PriceObservation) error {
+	if len(obs) == 0 {
+		return nil
+	}
+	return repo.DB.WithContext(ctx).Create(obs).Error
 }

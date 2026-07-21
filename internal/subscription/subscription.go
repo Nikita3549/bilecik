@@ -21,3 +21,10 @@ type Subscription struct {
 func (Subscription) TableName() string {
 	return "subscriptions"
 }
+
+type PollerTarget struct {
+	FromIATA string    `gorm:"column:from_iata"`
+	ToIATA   string    `gorm:"column:to_iata"`
+	DateFrom time.Time `gorm:"column:date_from"`
+	DateTo   time.Time `gorm:"column:date_to"`
+}

@@ -18,7 +18,9 @@ func NewClient() *Client {
 }
 
 func (c *Client) GetFromTo(from, to string, startDate, endDate time.Time) ([]Observation, error) {
-	totalDays := int(endDate.Sub(startDate).Hours() / 24)
+	// endDate inclusive: a subscription with startDate == endDate must still
+	// cover that single day, so count both bounds.
+	totalDays := int(endDate.Sub(startDate).Hours()/24) + 1
 	if totalDays <= 0 {
 		return nil, nil
 	}
@@ -35,7 +37,7 @@ func (c *Client) GetFromTo(from, to string, startDate, endDate time.Time) ([]Obs
 
 	trimmed := observations[:0]
 	for _, obs := range observations {
-		if obs.FlightDate.Before(startDate) || !obs.FlightDate.Before(endDate) {
+		if obs.FlightDate.Before(startDate) || obs.FlightDate.After(endDate) {
 			continue
 		}
 		trimmed = append(trimmed, obs)

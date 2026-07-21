@@ -3,6 +3,8 @@ package observation
 import (
 	"time"
 
+	"bilecik/internal/belavia"
+
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 )
@@ -20,4 +22,23 @@ type PriceObservation struct {
 
 func (PriceObservation) TableName() string {
 	return "price_observations"
+}
+
+func FromBelavia(obs belavia.Observation) PriceObservation {
+	return PriceObservation{
+		FromIATA:   obs.From,
+		ToIATA:     obs.To,
+		FlightDate: obs.FlightDate,
+		Amount:     obs.Amount,
+		Currency:   obs.Currency,
+		ObservedAt: obs.ObservedAt,
+	}
+}
+
+func FromBelaviaAll(obs []belavia.Observation) []PriceObservation {
+	result := make([]PriceObservation, len(obs))
+	for i, o := range obs {
+		result[i] = FromBelavia(o)
+	}
+	return result
 }
