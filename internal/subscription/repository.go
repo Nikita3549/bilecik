@@ -4,6 +4,8 @@ import (
 	"context"
 
 	db "bilecik/pkg"
+
+	"github.com/google/uuid"
 )
 
 type Repository struct {
@@ -18,6 +20,22 @@ func NewRepository(db *db.DB) *Repository {
 
 func (repo *Repository) Create(ctx context.Context, subscription *Subscription) error {
 	return repo.db.WithContext(ctx).Create(subscription).Error
+}
+
+func (repo *Repository) ListByTelegramID(ctx context.Context, telegramID int64) ([]Subscription, error) {
+	var subs []Subscription
+	err := repo.db.WithContext(ctx).
+		Where("telegram_id = ?", telegramID).
+		Order("created_at DESC").
+		Find(&subs).Error
+	return subs, err
+}
+
+func (repo *Repository) Delete(ctx context.Context, id uuid.UUID, telegramID int64) (bool, error) {
+	res := repo.db.WithContext(ctx).
+		Where("id = ? AND telegram_id = ?", id, telegramID).
+		Delete(&Subscription{})
+	return res.RowsAffected > 0, res.Error
 }
 
 func (repo *Repository) GetPollerTargets(ctx context.Context) ([]PollerTarget, error) {

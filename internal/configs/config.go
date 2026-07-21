@@ -11,6 +11,11 @@ import (
 
 type Config struct {
 	*DBConfig
+	*TgBotConfig
+}
+
+type TgBotConfig struct {
+	Token string `env:"BOT_TOKEN"`
 }
 
 type DBConfig struct {
