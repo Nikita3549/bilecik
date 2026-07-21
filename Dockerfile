@@ -1,4 +1,4 @@
-FROM golang:1.26.4 as build
+FROM golang:1.26.4-alpine as build
 WORKDIR /opt/api
 
 COPY go.mod go.sum ./
@@ -19,5 +19,5 @@ COPY --from=build /go/bin/migrate /usr/local/bin/migrate
 COPY --from=build /opt/api/main /opt/api/main
 
 CMD . ./.env \
-  && migrate -path migrations -database "postgres://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}?sslmode=disable" up \
+  && /usr/local/bin/migrate -path migrations -database "postgres://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}?sslmode=disable" up \
   && exec ./main

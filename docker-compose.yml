@@ -10,6 +10,17 @@ services:
       - db-data:/var/postgresql/data
     ports:
       - "127.0.0.1:${DB_PORT}:5432"
+  bot:
+    build:
+      context: .
+    container_name: bilecik-bot
+    restart: always
+    profiles:
+      - bot
+    volumes:
+      - ./.env:/opt/api/.env
+    depends_on:
+      - db
 
 volumes:
   db-data:
