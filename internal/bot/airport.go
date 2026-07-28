@@ -6,6 +6,8 @@ import (
 	"regexp"
 	"strings"
 
+	"bilecik/internal/airport"
+
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
@@ -65,9 +67,10 @@ func (h *Handlers) handleAirportSearch(ctx context.Context, api *tgbotapi.BotAPI
 	default:
 		h.removePicker(api, chatID, sess)
 		field := sess.step.airportField()
+		labels := pickerLabels(airports)
 		rows := make([][]tgbotapi.InlineKeyboardButton, 0, len(airports))
-		for _, a := range airports {
-			btn := tgbotapi.NewInlineKeyboardButtonData(a.Label(), airportPrefix+":"+field+":"+a.IATACode)
+		for i, a := range airports {
+			btn := tgbotapi.NewInlineKeyboardButtonData(labels[i], airportPrefix+":"+field+":"+a.IATACode)
 			rows = append(rows, tgbotapi.NewInlineKeyboardRow(btn))
 		}
 		out := tgbotapi.NewMessage(chatID, "Нашёл несколько вариантов:")
@@ -137,6 +140,25 @@ func (h *Handlers) applyAirport(sess *subscribeSession, code, label string) (con
 		return "Куда: " + label, true
 	}
 	return "", false
+}
+
+// pickerLabels switches to airport-name labels when one city holds several
+// airports in the list — "Москва (SVO)" three times is useless.
+func pickerLabels(airports []airport.Airport) []string {
+	type cityKey struct{ city, country string }
+	seen := make(map[cityKey]int, len(airports))
+	for _, a := range airports {
+		seen[cityKey{a.City, a.Country}]++
+	}
+	labels := make([]string, len(airports))
+	for i, a := range airports {
+		if a.City != "" && seen[cityKey{a.City, a.Country}] > 1 {
+			labels[i] = a.ShortLabel()
+		} else {
+			labels[i] = a.Label()
+		}
+	}
+	return labels
 }
 
 func nextQuestion(s step) string {
