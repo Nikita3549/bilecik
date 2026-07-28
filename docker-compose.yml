@@ -22,7 +22,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512m
+          memory: 768m
     volumes:
       - es-data:/usr/share/elasticsearch/data
     ports:
