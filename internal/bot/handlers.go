@@ -5,6 +5,7 @@ import (
 	"log"
 	"strings"
 
+	"bilecik/internal/airport"
 	"bilecik/internal/subscription"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -22,12 +23,14 @@ const helpText = `Я слежу за ценами на рейсы Belavia и п�
 
 type Handlers struct {
 	subs     *subscription.Repository
+	airports *airport.Repository
 	sessions *sessions
 }
 
-func NewHandlers(subs *subscription.Repository) *Handlers {
+func NewHandlers(subs *subscription.Repository, airports *airport.Repository) *Handlers {
 	return &Handlers{
 		subs:     subs,
+		airports: airports,
 		sessions: newSessions(),
 	}
 }
@@ -46,14 +49,16 @@ func (h *Handlers) Help(ctx context.Context, api *tgbotapi.BotAPI, msg *tgbotapi
 
 func (h *Handlers) Subscribe(ctx context.Context, api *tgbotapi.BotAPI, msg *tgbotapi.Message) {
 	h.sessions.start(msg.Chat.ID)
-	send(api, msg.Chat.ID, "Откуда летим? Пришли IATA-код города вылета (например MSQ).\n\nВ любой момент — /cancel.")
+	send(api, msg.Chat.ID, "Откуда летим? Напиши город или аэропорт (например «Минск» или MSQ).\n\nВ любой момент — /cancel.")
 }
 
 func (h *Handlers) Cancel(ctx context.Context, api *tgbotapi.BotAPI, msg *tgbotapi.Message) {
-	if _, ok := h.sessions.get(msg.Chat.ID); !ok {
+	sess, ok := h.sessions.get(msg.Chat.ID)
+	if !ok {
 		send(api, msg.Chat.ID, "Нечего отменять.")
 		return
 	}
+	h.removePicker(api, msg.Chat.ID, sess)
 	h.sessions.delete(msg.Chat.ID)
 	send(api, msg.Chat.ID, "Отменил. Начать заново — /subscribe.")
 }

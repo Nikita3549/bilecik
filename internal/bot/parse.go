@@ -2,7 +2,6 @@ package bot
 
 import (
 	"errors"
-	"regexp"
 	"strings"
 	"time"
 
@@ -10,16 +9,6 @@ import (
 )
 
 const dateLayout = "02.01.2006"
-
-var iataRe = regexp.MustCompile(`^[A-Za-z]{3}$`)
-
-func validateIATA(s string) (string, error) {
-	s = strings.ToUpper(strings.TrimSpace(s))
-	if !iataRe.MatchString(s) {
-		return "", errors.New("IATA-код — это 3 латинские буквы, например MSQ или IST")
-	}
-	return s, nil
-}
 
 func parseFlightDate(s string) (time.Time, error) {
 	t, err := time.Parse(dateLayout, strings.TrimSpace(s))

@@ -6,6 +6,7 @@ import (
 	"log"
 	"time"
 
+	"bilecik/internal/airport"
 	"bilecik/internal/subscription"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -13,7 +14,7 @@ import (
 
 const perUpdateTimeout = 15 * time.Second
 
-func Run(ctx context.Context, token string, subs *subscription.Repository) error {
+func Run(ctx context.Context, token string, subs *subscription.Repository, airports *airport.Repository) error {
 	api, err := tgbotapi.NewBotAPI(token)
 	if err != nil {
 		return fmt.Errorf("bot init: %w", err)
@@ -21,7 +22,7 @@ func Run(ctx context.Context, token string, subs *subscription.Repository) error
 	log.Printf("bot authorized as @%s", api.Self.UserName)
 
 	router := NewRouter()
-	RegisterHandlers(router, NewHandlers(subs))
+	RegisterHandlers(router, NewHandlers(subs, airports))
 
 	if err := registerCommandMenu(api); err != nil {
 		log.Printf("set command menu failed: %v", err)

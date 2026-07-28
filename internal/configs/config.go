@@ -12,6 +12,7 @@ import (
 type Config struct {
 	*DBConfig
 	*TgBotConfig
+	*ElasticConfig
 }
 
 type TgBotConfig struct {
@@ -20,6 +21,11 @@ type TgBotConfig struct {
 
 type DBConfig struct {
 	DSN string `env:"DSN"`
+}
+
+type ElasticConfig struct {
+	// URL is optional: when empty the bot falls back to Postgres airport search.
+	URL string `env:"ELASTIC_URL" optional:"true"`
 }
 
 func LoadConfig() *Config {

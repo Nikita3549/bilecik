@@ -4,26 +4,6 @@ import (
 	"testing"
 )
 
-func TestValidateIATA(t *testing.T) {
-	t.Run("valid lowercased", func(t *testing.T) {
-		got, err := validateIATA("  msq ")
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if got != "MSQ" {
-			t.Errorf("want MSQ, got %q", got)
-		}
-	})
-
-	for _, in := range []string{"", "MS", "MSQQ", "M1Q", "МСК"} {
-		t.Run("invalid "+in, func(t *testing.T) {
-			if _, err := validateIATA(in); err == nil {
-				t.Errorf("expected error for %q", in)
-			}
-		})
-	}
-}
-
 func TestParseFlightDate(t *testing.T) {
 	if _, err := parseFlightDate("01.08.2026"); err != nil {
 		t.Errorf("unexpected error: %v", err)

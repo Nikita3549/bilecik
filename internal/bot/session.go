@@ -29,6 +29,9 @@ type subscribeSession struct {
 	dateFrom  time.Time
 	dateTo    time.Time
 	threshold decimal.NullDecimal
+	// pickerMsgID is the message currently holding the airport inline
+	// keyboard; 0 when no picker is on screen.
+	pickerMsgID int
 }
 
 type sessions struct {
@@ -78,29 +81,8 @@ func (h *Handlers) handleStep(ctx context.Context, api *tgbotapi.BotAPI, msg *tg
 	text := msg.Text
 
 	switch sess.step {
-	case stepFrom:
-		iata, err := validateIATA(text)
-		if err != nil {
-			send(api, chatID, "❌ "+err.Error())
-			return
-		}
-		sess.fromIATA = iata
-		sess.step = stepTo
-		send(api, chatID, "Куда летим? Пришли IATA-код города назначения (например IST).")
-
-	case stepTo:
-		iata, err := validateIATA(text)
-		if err != nil {
-			send(api, chatID, "❌ "+err.Error())
-			return
-		}
-		if iata == sess.fromIATA {
-			send(api, chatID, "❌ Город назначения совпадает с городом вылета. Пришли другой.")
-			return
-		}
-		sess.toIATA = iata
-		sess.step = stepDateFrom
-		send(api, chatID, "С какой даты искать? Формат ДД.ММ.ГГГГ (например 01.08.2026).")
+	case stepFrom, stepTo:
+		h.handleAirportSearch(ctx, api, msg, sess)
 
 	case stepDateFrom:
 		date, err := parseFlightDate(text)

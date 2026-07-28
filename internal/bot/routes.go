@@ -10,4 +10,5 @@ func RegisterHandlers(r *Router, h *Handlers) {
 	r.Fallback(h.Fallback)
 	r.Intercept(h.Interceptor())
 	r.HandleCallback(unsubPrefix, h.UnsubscribeCallback)
+	r.HandleCallback(airportPrefix, h.AirportCallback)
 }
