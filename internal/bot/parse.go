@@ -9,7 +9,7 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-const dateLayout = "2006-01-02"
+const dateLayout = "02.01.2006"
 
 var iataRe = regexp.MustCompile(`^[A-Za-z]{3}$`)
 
@@ -24,7 +24,7 @@ func validateIATA(s string) (string, error) {
 func parseFlightDate(s string) (time.Time, error) {
 	t, err := time.Parse(dateLayout, strings.TrimSpace(s))
 	if err != nil {
-		return time.Time{}, errors.New("нужен формат даты ГГГГ-ММ-ДД, например 2026-08-01")
+		return time.Time{}, errors.New("нужен формат даты ДД.ММ.ГГГГ, например 01.08.2026")
 	}
 	return t, nil
 }

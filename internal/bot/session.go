@@ -100,7 +100,7 @@ func (h *Handlers) handleStep(ctx context.Context, api *tgbotapi.BotAPI, msg *tg
 		}
 		sess.toIATA = iata
 		sess.step = stepDateFrom
-		send(api, chatID, "С какой даты искать? Формат ГГГГ-ММ-ДД (например 2026-08-01).")
+		send(api, chatID, "С какой даты искать? Формат ДД.ММ.ГГГГ (например 01.08.2026).")
 
 	case stepDateFrom:
 		date, err := parseFlightDate(text)
@@ -114,7 +114,7 @@ func (h *Handlers) handleStep(ctx context.Context, api *tgbotapi.BotAPI, msg *tg
 		}
 		sess.dateFrom = date
 		sess.step = stepDateTo
-		send(api, chatID, "По какую дату? Формат ГГГГ-ММ-ДД.")
+		send(api, chatID, "По какую дату? Формат ДД.ММ.ГГГГ.")
 
 	case stepDateTo:
 		date, err := parseFlightDate(text)
