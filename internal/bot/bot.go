@@ -37,12 +37,16 @@ func Run(ctx context.Context, token string, subs *subscription.Repository) error
 	}()
 
 	for update := range updates {
-		if update.Message == nil {
-			continue
+		switch {
+		case update.Message != nil:
+			msgCtx, cancel := context.WithTimeout(ctx, perUpdateTimeout)
+			router.Dispatch(msgCtx, api, update.Message)
+			cancel()
+		case update.CallbackQuery != nil:
+			cbCtx, cancel := context.WithTimeout(ctx, perUpdateTimeout)
+			router.DispatchCallback(cbCtx, api, update.CallbackQuery)
+			cancel()
 		}
-		msgCtx, cancel := context.WithTimeout(ctx, perUpdateTimeout)
-		router.Dispatch(msgCtx, api, update.Message)
-		cancel()
 	}
 
 	return ctx.Err()

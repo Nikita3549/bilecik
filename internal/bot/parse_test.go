@@ -25,10 +25,10 @@ func TestValidateIATA(t *testing.T) {
 }
 
 func TestParseFlightDate(t *testing.T) {
-	if _, err := parseFlightDate("2026-08-01"); err != nil {
+	if _, err := parseFlightDate("01.08.2026"); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	for _, in := range []string{"2026/08/01", "01-08-2026", "", "tomorrow"} {
+	for _, in := range []string{"2026-08-01", "01/08/2026", "01-08-2026", "", "tomorrow"} {
 		if _, err := parseFlightDate(in); err == nil {
 			t.Errorf("expected error for %q", in)
 		}

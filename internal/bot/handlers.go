@@ -76,29 +76,61 @@ func (h *Handlers) List(ctx context.Context, api *tgbotapi.BotAPI, msg *tgbotapi
 		b.WriteString(formatSubscription(s))
 		b.WriteString("\n\n")
 	}
-	b.WriteString("Удалить: /unsubscribe ID")
+	b.WriteString("Удалить — /unsubscribe")
 	send(api, msg.Chat.ID, b.String())
 }
 
+const unsubPrefix = "unsub"
+
 func (h *Handlers) Unsubscribe(ctx context.Context, api *tgbotapi.BotAPI, msg *tgbotapi.Message) {
-	arg := strings.TrimSpace(msg.CommandArguments())
-	id, err := uuid.Parse(arg)
+	subs, err := h.subs.ListByTelegramID(ctx, msg.Chat.ID)
 	if err != nil {
-		send(api, msg.Chat.ID, "Укажи ID подписки: /unsubscribe ID\nПосмотреть ID — /list")
+		log.Printf("unsubscribe: query failed: %v", err)
+		send(api, msg.Chat.ID, "Не смог достать подписки, попробуй позже.")
+		return
+	}
+	if len(subs) == 0 {
+		send(api, msg.Chat.ID, "У тебя пока нет подписок. Создай первую через /subscribe.")
 		return
 	}
 
-	deleted, err := h.subs.Delete(ctx, id, msg.Chat.ID)
+	rows := make([][]tgbotapi.InlineKeyboardButton, 0, len(subs))
+	for _, s := range subs {
+		btn := tgbotapi.NewInlineKeyboardButtonData(subscriptionLabel(s), unsubPrefix+":"+s.ID.String())
+		rows = append(rows, tgbotapi.NewInlineKeyboardRow(btn))
+	}
+
+	out := tgbotapi.NewMessage(msg.Chat.ID, "Какую подписку удалить?")
+	out.ReplyMarkup = tgbotapi.NewInlineKeyboardMarkup(rows...)
+	if _, err := api.Send(out); err != nil {
+		log.Printf("unsubscribe: send picker failed: %v", err)
+	}
+}
+
+func (h *Handlers) UnsubscribeCallback(ctx context.Context, api *tgbotapi.BotAPI, cq *tgbotapi.CallbackQuery) {
+	_, idStr, _ := strings.Cut(cq.Data, ":")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		answerCallback(api, cq.ID, "Не понял, какую подписку удалить.")
+		return
+	}
+
+	deleted, err := h.subs.Delete(ctx, id, cq.Message.Chat.ID)
 	if err != nil {
 		log.Printf("unsubscribe: delete failed: %v", err)
-		send(api, msg.Chat.ID, "Не смог удалить, попробуй позже.")
+		answerCallback(api, cq.ID, "Не смог удалить, попробуй позже.")
 		return
 	}
 	if !deleted {
-		send(api, msg.Chat.ID, "Подписка не найдена.")
+		answerCallback(api, cq.ID, "Подписка не найдена.")
 		return
 	}
-	send(api, msg.Chat.ID, "🗑 Подписка удалена.")
+
+	answerCallback(api, cq.ID, "Удалено")
+	edit := tgbotapi.NewEditMessageText(cq.Message.Chat.ID, cq.Message.MessageID, "🗑 Подписка удалена.")
+	if _, err := api.Send(edit); err != nil {
+		log.Printf("unsubscribe: edit message failed: %v", err)
+	}
 }
 
 func (h *Handlers) Fallback(ctx context.Context, api *tgbotapi.BotAPI, msg *tgbotapi.Message) {
@@ -109,18 +141,27 @@ func (h *Handlers) Fallback(ctx context.Context, api *tgbotapi.BotAPI, msg *tgbo
 	send(api, msg.Chat.ID, "Я работаю по командам. Начни с /help")
 }
 
-func formatSubscription(s subscription.Subscription) string {
-	line := s.FromIATA + " → " + s.ToIATA + "  " +
+func subscriptionLabel(s subscription.Subscription) string {
+	return s.FromIATA + " → " + s.ToIATA + "  " +
 		s.DateFrom.Format(dateLayout) + " … " + s.DateTo.Format(dateLayout)
+}
+
+func formatSubscription(s subscription.Subscription) string {
+	line := subscriptionLabel(s)
 	if s.Threshold.Valid {
 		line += "\nцель: до " + s.Threshold.Decimal.String() + " BYN"
 	}
-	line += "\nID: " + s.ID.String()
 	return line
 }
 
 func send(api *tgbotapi.BotAPI, chatID int64, text string) {
 	if _, err := api.Send(tgbotapi.NewMessage(chatID, text)); err != nil {
 		log.Printf("send to %d failed: %v", chatID, err)
+	}
+}
+
+func answerCallback(api *tgbotapi.BotAPI, callbackID, text string) {
+	if _, err := api.Request(tgbotapi.NewCallback(callbackID, text)); err != nil {
+		log.Printf("answer callback failed: %v", err)
 	}
 }
