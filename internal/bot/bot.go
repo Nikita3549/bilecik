@@ -2,7 +2,6 @@ package bot
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"time"
 
@@ -14,11 +13,7 @@ import (
 
 const perUpdateTimeout = 15 * time.Second
 
-func Run(ctx context.Context, token string, subs *subscription.Repository, airports *airport.Repository) error {
-	api, err := tgbotapi.NewBotAPI(token)
-	if err != nil {
-		return fmt.Errorf("bot init: %w", err)
-	}
+func Run(ctx context.Context, api *tgbotapi.BotAPI, subs *subscription.Repository, airports *airport.Repository) error {
 	log.Printf("bot authorized as @%s", api.Self.UserName)
 
 	router := NewRouter()

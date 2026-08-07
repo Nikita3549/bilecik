@@ -87,35 +87,35 @@ func (h *Handlers) handleStep(ctx context.Context, api *tgbotapi.BotAPI, msg *tg
 	case stepDateFrom:
 		date, err := parseFlightDate(text)
 		if err != nil {
-			send(api, chatID, "❌ "+err.Error())
+			Send(api, chatID, "❌ "+err.Error())
 			return
 		}
 		if date.Before(startOfDay(time.Now())) {
-			send(api, chatID, "❌ Эта дата уже в прошлом. Пришли другую.")
+			Send(api, chatID, "❌ Эта дата уже в прошлом. Пришли другую.")
 			return
 		}
 		sess.dateFrom = date
 		sess.step = stepDateTo
-		send(api, chatID, "По какую дату? Формат ДД.ММ.ГГГГ.")
+		Send(api, chatID, "По какую дату? Формат ДД.ММ.ГГГГ.")
 
 	case stepDateTo:
 		date, err := parseFlightDate(text)
 		if err != nil {
-			send(api, chatID, "❌ "+err.Error())
+			Send(api, chatID, "❌ "+err.Error())
 			return
 		}
 		if date.Before(sess.dateFrom) {
-			send(api, chatID, "❌ Дата «по» раньше даты «с». Пришли другую.")
+			Send(api, chatID, "❌ Дата «по» раньше даты «с». Пришли другую.")
 			return
 		}
 		sess.dateTo = date
 		sess.step = stepThreshold
-		send(api, chatID, "Целевая цена в BYN? Пришли число (например 250) или «-», чтобы следить без порога.")
+		Send(api, chatID, "Целевая цена в BYN? Пришли число (например 250) или «-», чтобы следить без порога.")
 
 	case stepThreshold:
 		threshold, err := parseThreshold(text)
 		if err != nil {
-			send(api, chatID, "❌ "+err.Error())
+			Send(api, chatID, "❌ "+err.Error())
 			return
 		}
 		sess.threshold = threshold
@@ -132,9 +132,9 @@ func (h *Handlers) handleStep(ctx context.Context, api *tgbotapi.BotAPI, msg *tg
 
 		if err := h.subs.Create(ctx, sub); err != nil {
 			log.Printf("subscribe: create failed: %v", err)
-			send(api, chatID, "Не смог сохранить подписку, попробуй позже: /subscribe")
+			Send(api, chatID, "Не смог сохранить подписку, попробуй позже: /subscribe")
 			return
 		}
-		send(api, chatID, "✅ Подписка создана:\n"+formatSubscription(*sub))
+		Send(api, chatID, "✅ Подписка создана:\n"+formatSubscription(*sub))
 	}
 }

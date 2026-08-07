@@ -29,14 +29,14 @@ func (h *Handlers) handleAirportSearch(ctx context.Context, api *tgbotapi.BotAPI
 	chatID := msg.Chat.ID
 	query := strings.TrimSpace(msg.Text)
 	if query == "" {
-		send(api, chatID, "Напиши город или аэропорт текстом, например «Минск» или MSQ.")
+		Send(api, chatID, "Напиши город или аэропорт текстом, например «Минск» или MSQ.")
 		return
 	}
 
 	airports, err := h.airports.Search(ctx, query)
 	if err != nil {
 		log.Printf("airport search %q failed: %v", query, err)
-		send(api, chatID, "Поиск сейчас недоступен, попробуй ещё раз чуть позже.")
+		Send(api, chatID, "Поиск сейчас недоступен, попробуй ещё раз чуть позже.")
 		return
 	}
 
@@ -49,21 +49,21 @@ func (h *Handlers) handleAirportSearch(ctx context.Context, api *tgbotapi.BotAPI
 			h.removePicker(api, chatID, sess)
 			confirm, ok := h.applyAirport(sess, code, code)
 			if !ok {
-				send(api, chatID, "❌ Город назначения совпадает с городом вылета. Пришли другой.")
+				Send(api, chatID, "❌ Город назначения совпадает с городом вылета. Пришли другой.")
 				return
 			}
-			send(api, chatID, confirm+"\n\n"+nextQuestion(sess.step))
+			Send(api, chatID, confirm+"\n\n"+nextQuestion(sess.step))
 			return
 		}
-		send(api, chatID, "Ничего не нашёл. Попробуй иначе — другое написание, или пришли IATA-код (3 латинские буквы).")
+		Send(api, chatID, "Ничего не нашёл. Попробуй иначе — другое написание, или пришли IATA-код (3 латинские буквы).")
 	case 1:
 		h.removePicker(api, chatID, sess)
 		confirm, ok := h.applyAirport(sess, airports[0].IATACode, airports[0].Label())
 		if !ok {
-			send(api, chatID, "❌ Город назначения совпадает с городом вылета. Пришли другой.")
+			Send(api, chatID, "❌ Город назначения совпадает с городом вылета. Пришли другой.")
 			return
 		}
-		send(api, chatID, confirm+"\n\n"+nextQuestion(sess.step))
+		Send(api, chatID, confirm+"\n\n"+nextQuestion(sess.step))
 	default:
 		h.removePicker(api, chatID, sess)
 		field := sess.step.airportField()
@@ -122,7 +122,7 @@ func (h *Handlers) AirportCallback(ctx context.Context, api *tgbotapi.BotAPI, cq
 		log.Printf("edit airport picker failed: %v", err)
 	}
 	sess.pickerMsgID = 0
-	send(api, chatID, nextQuestion(sess.step))
+	Send(api, chatID, nextQuestion(sess.step))
 }
 
 func (h *Handlers) applyAirport(sess *subscribeSession, code, label string) (confirm string, ok bool) {

@@ -40,38 +40,38 @@ func (h *Handlers) Interceptor() Interceptor {
 }
 
 func (h *Handlers) Start(ctx context.Context, api *tgbotapi.BotAPI, msg *tgbotapi.Message) {
-	send(api, msg.Chat.ID, "Привет! Я bilecik — ловлю дешёвые билеты Belavia.\n\n"+helpText)
+	Send(api, msg.Chat.ID, "Привет! Я bilecik — ловлю дешёвые билеты Belavia.\n\n"+helpText)
 }
 
 func (h *Handlers) Help(ctx context.Context, api *tgbotapi.BotAPI, msg *tgbotapi.Message) {
-	send(api, msg.Chat.ID, helpText)
+	Send(api, msg.Chat.ID, helpText)
 }
 
 func (h *Handlers) Subscribe(ctx context.Context, api *tgbotapi.BotAPI, msg *tgbotapi.Message) {
 	h.sessions.start(msg.Chat.ID)
-	send(api, msg.Chat.ID, "Откуда летим? Напиши город или аэропорт (например «Минск» или MSQ).\n\nВ любой момент — /cancel.")
+	Send(api, msg.Chat.ID, "Откуда летим? Напиши город или аэропорт (например «Минск» или MSQ).\n\nВ любой момент — /cancel.")
 }
 
 func (h *Handlers) Cancel(ctx context.Context, api *tgbotapi.BotAPI, msg *tgbotapi.Message) {
 	sess, ok := h.sessions.get(msg.Chat.ID)
 	if !ok {
-		send(api, msg.Chat.ID, "Нечего отменять.")
+		Send(api, msg.Chat.ID, "Нечего отменять.")
 		return
 	}
 	h.removePicker(api, msg.Chat.ID, sess)
 	h.sessions.delete(msg.Chat.ID)
-	send(api, msg.Chat.ID, "Отменил. Начать заново — /subscribe.")
+	Send(api, msg.Chat.ID, "Отменил. Начать заново — /subscribe.")
 }
 
 func (h *Handlers) List(ctx context.Context, api *tgbotapi.BotAPI, msg *tgbotapi.Message) {
 	subs, err := h.subs.ListByTelegramID(ctx, msg.Chat.ID)
 	if err != nil {
 		log.Printf("list: query failed: %v", err)
-		send(api, msg.Chat.ID, "Не смог достать подписки, попробуй позже.")
+		Send(api, msg.Chat.ID, "Не смог достать подписки, попробуй позже.")
 		return
 	}
 	if len(subs) == 0 {
-		send(api, msg.Chat.ID, "У тебя пока нет подписок. Создай первую через /subscribe.")
+		Send(api, msg.Chat.ID, "У тебя пока нет подписок. Создай первую через /subscribe.")
 		return
 	}
 
@@ -82,7 +82,7 @@ func (h *Handlers) List(ctx context.Context, api *tgbotapi.BotAPI, msg *tgbotapi
 		b.WriteString("\n\n")
 	}
 	b.WriteString("Удалить — /unsubscribe")
-	send(api, msg.Chat.ID, b.String())
+	Send(api, msg.Chat.ID, b.String())
 }
 
 const unsubPrefix = "unsub"
@@ -91,11 +91,11 @@ func (h *Handlers) Unsubscribe(ctx context.Context, api *tgbotapi.BotAPI, msg *t
 	subs, err := h.subs.ListByTelegramID(ctx, msg.Chat.ID)
 	if err != nil {
 		log.Printf("unsubscribe: query failed: %v", err)
-		send(api, msg.Chat.ID, "Не смог достать подписки, попробуй позже.")
+		Send(api, msg.Chat.ID, "Не смог достать подписки, попробуй позже.")
 		return
 	}
 	if len(subs) == 0 {
-		send(api, msg.Chat.ID, "У тебя пока нет подписок. Создай первую через /subscribe.")
+		Send(api, msg.Chat.ID, "У тебя пока нет подписок. Создай первую через /subscribe.")
 		return
 	}
 
@@ -140,10 +140,10 @@ func (h *Handlers) UnsubscribeCallback(ctx context.Context, api *tgbotapi.BotAPI
 
 func (h *Handlers) Fallback(ctx context.Context, api *tgbotapi.BotAPI, msg *tgbotapi.Message) {
 	if msg.IsCommand() {
-		send(api, msg.Chat.ID, "Не знаю такой команды. Список — /help")
+		Send(api, msg.Chat.ID, "Не знаю такой команды. Список — /help")
 		return
 	}
-	send(api, msg.Chat.ID, "Я работаю по командам. Начни с /help")
+	Send(api, msg.Chat.ID, "Я работаю по командам. Начни с /help")
 }
 
 func subscriptionLabel(s subscription.Subscription) string {
@@ -159,7 +159,7 @@ func formatSubscription(s subscription.Subscription) string {
 	return line
 }
 
-func send(api *tgbotapi.BotAPI, chatID int64, text string) {
+func Send(api *tgbotapi.BotAPI, chatID int64, text string) {
 	if _, err := api.Send(tgbotapi.NewMessage(chatID, text)); err != nil {
 		log.Printf("send to %d failed: %v", chatID, err)
 	}

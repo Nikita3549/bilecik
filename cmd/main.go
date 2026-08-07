@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -12,13 +13,17 @@ import (
 	"bilecik/internal/belavia"
 	"bilecik/internal/bot"
 	"bilecik/internal/configs"
+	"bilecik/internal/digester"
 	"bilecik/internal/observation"
 	"bilecik/internal/poller"
+	"bilecik/internal/pricing"
 	"bilecik/internal/scheduler"
 	"bilecik/internal/subscription"
 	db "bilecik/pkg"
 
 	elasticsearch "github.com/elastic/go-elasticsearch/v8"
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/robfig/cron/v3"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -27,11 +32,18 @@ func main() {
 	defer stop()
 
 	conf := configs.LoadConfig()
+
+	api, err := tgbotapi.NewBotAPI(conf.TgBotConfig.Token)
+	if err != nil {
+		log.Fatalf("bot init: %v", err)
+	}
+
 	database := db.NewDB(conf)
 	defer database.Close()
 
 	subscriptionRepository := subscription.NewRepository(database)
 	observationRepository := observation.NewRepository(database)
+	pricingRepository := pricing.NewRepository(database)
 
 	var esClient *elasticsearch.Client
 	if conf.ElasticConfig.URL != "" {
@@ -50,6 +62,8 @@ func main() {
 		ObservationRepository:  observationRepository,
 	})
 
+	d := digester.NewDigester(pricingRepository, api)
+
 	g, gctx := errgroup.WithContext(ctx)
 
 	if esClient != nil {
@@ -64,12 +78,32 @@ func main() {
 	}
 
 	g.Go(func() error {
-		return bot.Run(gctx, conf.TgBotConfig.Token, subscriptionRepository, airportRepository)
+		return bot.Run(gctx, api, subscriptionRepository, airportRepository)
 	})
 
 	g.Go(func() error {
 		scheduler.New().RunEvery(gctx, 30*time.Minute, 5*time.Minute, p)
 		return nil
+	})
+
+	g.Go(func() error {
+		loc, err := time.LoadLocation("Europe/Minsk")
+		if err != nil {
+			log.Printf("load location failed, falling back to UTC: %v", err)
+			loc = time.UTC
+		}
+		c := cron.New(cron.WithLocation(loc))
+
+		if _, err := c.AddFunc("0 9 * * *", func() {
+			d.Run(gctx)
+		}); err != nil {
+			return fmt.Errorf("cron add: %w", err)
+		}
+
+		c.Start()
+		<-gctx.Done()
+		<-c.Stop().Done()
+		return gctx.Err()
 	})
 
 	if err := g.Wait(); err != nil && err != context.Canceled {
