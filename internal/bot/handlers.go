@@ -147,7 +147,7 @@ func (h *Handlers) Fallback(ctx context.Context, api *tgbotapi.BotAPI, msg *tgbo
 }
 
 func subscriptionLabel(s subscription.Subscription) string {
-	return s.FromIATA + " → " + s.ToIATA + "  " +
+	return s.FromLabel() + " → " + s.ToLabel() + "  " +
 		s.DateFrom.Format(dateLayout) + " … " + s.DateTo.Format(dateLayout)
 }
 

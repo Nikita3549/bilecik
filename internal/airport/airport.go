@@ -17,14 +17,19 @@ func (Airport) TableName() string {
 	return "airports"
 }
 
+// Place is the human name of the location: the city, or the airport name
+// when the catalog has no city for it.
+func (a Airport) Place() string {
+	if a.City != "" {
+		return a.City
+	}
+	return a.Name
+}
+
 // Label is city-based, not name-based: "Международный аэропорт Дубая (DXB) ·
 // ОАЭ" does not fit a Telegram button, "Дубай (DXB) · ОАЭ" does.
 func (a Airport) Label() string {
-	place := a.City
-	if place == "" {
-		place = a.Name
-	}
-	return truncateLabel(place + " (" + a.IATACode + ") · " + a.Country)
+	return truncateLabel(a.Place() + " (" + a.IATACode + ") · " + a.Country)
 }
 
 // ShortLabel disambiguates airports of one city: "Москва · Шереметьево (SVO)".

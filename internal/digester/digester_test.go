@@ -56,6 +56,11 @@ func TestSubscriptionHeader(t *testing.T) {
 			sub:  subscription.Subscription{FromIATA: "MSQ", ToIATA: "LED", DateFrom: date("2026-12-28"), DateTo: date("2027-01-03")},
 			want: "✈️ MSQ → LED · 28 дек 2026 – 3 янв 2027",
 		},
+		{
+			name: "cities render as city (iata)",
+			sub:  subscription.Subscription{FromIATA: "MSQ", FromCity: "Минск", ToIATA: "IST", ToCity: "Стамбул", DateFrom: date("2026-01-20"), DateTo: date("2026-01-25")},
+			want: "✈️ Минск (MSQ) → Стамбул (IST) · 20–25 янв 2026",
+		},
 	}
 
 	for _, tc := range cases {

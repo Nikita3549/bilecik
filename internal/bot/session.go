@@ -25,7 +25,9 @@ const (
 type subscribeSession struct {
 	step      step
 	fromIATA  string
+	fromCity  string
 	toIATA    string
+	toCity    string
 	dateFrom  time.Time
 	dateTo    time.Time
 	threshold decimal.NullDecimal
@@ -123,7 +125,9 @@ func (h *Handlers) handleStep(ctx context.Context, api *tgbotapi.BotAPI, msg *tg
 		sub := &subscription.Subscription{
 			TelegramID: chatID,
 			FromIATA:   sess.fromIATA,
+			FromCity:   sess.fromCity,
 			ToIATA:     sess.toIATA,
+			ToCity:     sess.toCity,
 			DateFrom:   sess.dateFrom,
 			DateTo:     sess.dateTo,
 			Threshold:  sess.threshold,

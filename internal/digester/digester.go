@@ -80,7 +80,7 @@ func subscriptionHeader(s subscription.Subscription) string {
 	if s.DateFrom.Year() == s.DateTo.Year() {
 		period += fmt.Sprintf(" %d", s.DateTo.Year())
 	}
-	return fmt.Sprintf("✈️ %s → %s · %s", s.FromIATA, s.ToIATA, period)
+	return fmt.Sprintf("✈️ %s → %s · %s", s.FromLabel(), s.ToLabel(), period)
 }
 
 func formatTier(t pricing.PriceTier) string {

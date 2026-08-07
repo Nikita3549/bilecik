@@ -26,6 +26,8 @@ type bestPriceRow struct {
 	TelegramID     int64               `gorm:"column:telegram_id"`
 	FromIATA       string              `gorm:"column:from_iata"`
 	ToIATA         string              `gorm:"column:to_iata"`
+	FromCity       string              `gorm:"column:from_city"`
+	ToCity         string              `gorm:"column:to_city"`
 	DateFrom       time.Time           `gorm:"column:date_from"`
 	DateTo         time.Time           `gorm:"column:date_to"`
 	Threshold      decimal.NullDecimal `gorm:"column:threshold"`
@@ -68,6 +70,8 @@ func (r *Repository) ListWithBestPrices(ctx context.Context, topN int) ([]Subscr
 			s.telegram_id,
 			s.from_iata,
 			s.to_iata,
+			s.from_city,
+			s.to_city,
 			s.date_from,
 			s.date_to,
 			s.threshold,
@@ -119,6 +123,8 @@ func groupRows(rows []bestPriceRow) []SubscriptionBestPrice {
 				TelegramID: row.TelegramID,
 				FromIATA:   row.FromIATA,
 				ToIATA:     row.ToIATA,
+				FromCity:   row.FromCity,
+				ToCity:     row.ToCity,
 				DateFrom:   row.DateFrom,
 				DateTo:     row.DateTo,
 				Threshold:  row.Threshold,

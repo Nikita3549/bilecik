@@ -47,7 +47,7 @@ func (h *Handlers) handleAirportSearch(ctx context.Context, api *tgbotapi.BotAPI
 		if iataRe.MatchString(query) {
 			code := strings.ToUpper(query)
 			h.removePicker(api, chatID, sess)
-			confirm, ok := h.applyAirport(sess, code, code)
+			confirm, ok := h.applyAirport(sess, code, "", code)
 			if !ok {
 				Send(api, chatID, "❌ Город назначения совпадает с городом вылета. Пришли другой.")
 				return
@@ -58,7 +58,7 @@ func (h *Handlers) handleAirportSearch(ctx context.Context, api *tgbotapi.BotAPI
 		Send(api, chatID, "Ничего не нашёл. Попробуй иначе — другое написание, или пришли IATA-код (3 латинские буквы).")
 	case 1:
 		h.removePicker(api, chatID, sess)
-		confirm, ok := h.applyAirport(sess, airports[0].IATACode, airports[0].Label())
+		confirm, ok := h.applyAirport(sess, airports[0].IATACode, airports[0].Place(), airports[0].Label())
 		if !ok {
 			Send(api, chatID, "❌ Город назначения совпадает с городом вылета. Пришли другой.")
 			return
@@ -110,7 +110,7 @@ func (h *Handlers) AirportCallback(ctx context.Context, api *tgbotapi.BotAPI, cq
 		return
 	}
 
-	confirm, ok := h.applyAirport(sess, ap.IATACode, ap.Label())
+	confirm, ok := h.applyAirport(sess, ap.IATACode, ap.Place(), ap.Label())
 	if !ok {
 		answerCallback(api, cq.ID, "Совпадает с городом вылета, выбери другой.")
 		return
@@ -125,10 +125,11 @@ func (h *Handlers) AirportCallback(ctx context.Context, api *tgbotapi.BotAPI, cq
 	Send(api, chatID, nextQuestion(sess.step))
 }
 
-func (h *Handlers) applyAirport(sess *subscribeSession, code, label string) (confirm string, ok bool) {
+func (h *Handlers) applyAirport(sess *subscribeSession, code, city, label string) (confirm string, ok bool) {
 	switch sess.step {
 	case stepFrom:
 		sess.fromIATA = code
+		sess.fromCity = city
 		sess.step = stepTo
 		return "Откуда: " + label, true
 	case stepTo:
@@ -136,6 +137,7 @@ func (h *Handlers) applyAirport(sess *subscribeSession, code, label string) (con
 			return "", false
 		}
 		sess.toIATA = code
+		sess.toCity = city
 		sess.step = stepDateFrom
 		return "Куда: " + label, true
 	}
