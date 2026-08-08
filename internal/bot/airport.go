@@ -55,7 +55,7 @@ func (h *Handlers) handleAirportSearch(ctx context.Context, api *tgbotapi.BotAPI
 			Send(api, chatID, confirm+"\n\n"+nextQuestion(sess.step))
 			return
 		}
-		Send(api, chatID, "Ничего не нашёл. Попробуй иначе — другое написание, или пришли IATA-код (3 латинские буквы).")
+		Send(api, chatID, "❌ Ничего не нашёл. Попробуй иначе — другое написание, или пришли IATA-код (3 латинские буквы).")
 	case 1:
 		h.removePicker(api, chatID, sess)
 		confirm, ok := h.applyAirport(sess, airports[0].IATACode, airports[0].Place(), airports[0].Label())
