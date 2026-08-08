@@ -18,28 +18,6 @@ func date(s string) time.Time {
 	return d
 }
 
-func TestFormatRange(t *testing.T) {
-	cases := []struct {
-		name string
-		from string
-		to   string
-		want string
-	}{
-		{name: "same day", from: "2026-02-20", to: "2026-02-20", want: "20 фев"},
-		{name: "same month", from: "2026-01-20", to: "2026-01-22", want: "20–22 янв"},
-		{name: "same year different months", from: "2026-01-27", to: "2026-02-12", want: "27 янв – 12 фев"},
-		{name: "different years", from: "2026-12-28", to: "2027-01-03", want: "28 дек 2026 – 3 янв 2027"},
-	}
-
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			if got := formatRange(date(tc.from), date(tc.to)); got != tc.want {
-				t.Errorf("formatRange(%s, %s) = %q, want %q", tc.from, tc.to, got, tc.want)
-			}
-		})
-	}
-}
-
 func TestSubscriptionHeader(t *testing.T) {
 	cases := []struct {
 		name string

@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"log"
 	"strings"
-	"time"
 
 	"bilecik/internal/bot"
+	"bilecik/internal/dates"
 	"bilecik/internal/pricing"
 	"bilecik/internal/subscription"
 
@@ -15,8 +15,6 @@ import (
 )
 
 var rankMarks = [...]string{"🥇", "🥈", "🥉"}
-
-var monthsShort = [...]string{"янв", "фев", "мар", "апр", "мая", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"}
 
 type Digester struct {
 	pricingRepository *pricing.Repository
@@ -76,7 +74,7 @@ func formatDailyDigest(prices []pricing.SubscriptionBestPrice) string {
 }
 
 func subscriptionHeader(s subscription.Subscription) string {
-	period := formatRange(s.DateFrom, s.DateTo)
+	period := dates.FormatRange(s.DateFrom, s.DateTo)
 	if s.DateFrom.Year() == s.DateTo.Year() {
 		period += fmt.Sprintf(" %d", s.DateTo.Year())
 	}
@@ -91,28 +89,8 @@ func formatTier(t pricing.PriceTier) string {
 
 	ranges := make([]string, len(t.Dates))
 	for i, r := range t.Dates {
-		ranges[i] = formatRange(r.From, r.To)
+		ranges[i] = dates.FormatRange(r.From, r.To)
 	}
 
 	return fmt.Sprintf("%s %s %s — %s", mark, t.Amount.String(), t.Currency, strings.Join(ranges, " · "))
-}
-
-// formatRange: «20 фев», «20–22 янв», «27 янв – 12 фев», «28 дек 2026 – 3 янв 2027».
-func formatRange(from, to time.Time) string {
-	sameYear := from.Year() == to.Year()
-
-	switch {
-	case from.Equal(to):
-		return formatDay(to)
-	case sameYear && from.Month() == to.Month():
-		return fmt.Sprintf("%d–%s", from.Day(), formatDay(to))
-	case sameYear:
-		return formatDay(from) + " – " + formatDay(to)
-	default:
-		return fmt.Sprintf("%s %d – %s %d", formatDay(from), from.Year(), formatDay(to), to.Year())
-	}
-}
-
-func formatDay(t time.Time) string {
-	return fmt.Sprintf("%d %s", t.Day(), monthsShort[t.Month()-1])
 }

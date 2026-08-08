@@ -14,6 +14,7 @@ import (
 	"bilecik/internal/bot"
 	"bilecik/internal/configs"
 	"bilecik/internal/digester"
+	"bilecik/internal/notifier"
 	"bilecik/internal/observation"
 	"bilecik/internal/poller"
 	"bilecik/internal/pricing"
@@ -63,7 +64,7 @@ func main() {
 		BelaviaClient:          belaviaClient,
 		ObservationRepository:  observationRepository,
 	})
-
+	n := notifier.NewNotifier(api, observationRepository)
 	d := digester.NewDigester(pricingRepository, api)
 
 	g, gctx := errgroup.WithContext(ctx)
@@ -81,6 +82,11 @@ func main() {
 
 	g.Go(func() error {
 		return bot.Run(gctx, api, subscriptionRepository, airportRepository)
+	})
+
+	g.Go(func() error {
+		scheduler.New().RunEvery(gctx, 5*time.Minute, 1*time.Minute, n)
+		return nil
 	})
 
 	g.Go(func() error {

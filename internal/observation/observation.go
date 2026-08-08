@@ -24,6 +24,20 @@ func (PriceObservation) TableName() string {
 	return "price_observations"
 }
 
+type ThresholdHit struct {
+	FromIATA       string          `gorm:"column:from_iata"`
+	ToIATA         string          `gorm:"column:to_iata"`
+	FromCity       string          `gorm:"column:from_city"`
+	ToCity         string          `gorm:"column:to_city"`
+	FlightDate     time.Time       `gorm:"column:flight_date"`
+	Amount         decimal.Decimal `gorm:"column:amount"`
+	Currency       string          `gorm:"column:currency"`
+	ObservedAt     time.Time       `gorm:"column:observed_at"`
+	SubscriptionID uuid.UUID       `gorm:"column:subscription_id"`
+	TelegramID     int64           `gorm:"column:telegram_id"`
+	Threshold      decimal.Decimal `gorm:"column:threshold"`
+}
+
 func FromBelavia(obs belavia.Observation) PriceObservation {
 	return PriceObservation{
 		FromIATA:   obs.From,

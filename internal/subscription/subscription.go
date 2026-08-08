@@ -27,14 +27,16 @@ func (Subscription) TableName() string {
 // FromLabel returns «Минск (MSQ)», or the bare IATA code when the city is
 // unknown (e.g. the code was typed by hand and is missing from the catalog).
 func (s Subscription) FromLabel() string {
-	return placeLabel(s.FromCity, s.FromIATA)
+	return PlaceLabel(s.FromCity, s.FromIATA)
 }
 
 func (s Subscription) ToLabel() string {
-	return placeLabel(s.ToCity, s.ToIATA)
+	return PlaceLabel(s.ToCity, s.ToIATA)
 }
 
-func placeLabel(city, iata string) string {
+// PlaceLabel formats «Минск (MSQ)» for callers that carry the city and the code
+// without a whole Subscription at hand.
+func PlaceLabel(city, iata string) string {
 	if city == "" {
 		return iata
 	}
