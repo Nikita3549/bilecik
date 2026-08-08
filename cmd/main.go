@@ -21,6 +21,8 @@ import (
 	"bilecik/internal/subscription"
 	db "bilecik/pkg"
 
+	_ "time/tzdata"
+
 	elasticsearch "github.com/elastic/go-elasticsearch/v8"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/robfig/cron/v3"
