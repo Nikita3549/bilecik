@@ -8,6 +8,7 @@ import (
 
 	"bilecik/internal/bot"
 	"bilecik/internal/dates"
+	"bilecik/internal/money"
 	"bilecik/internal/pricing"
 	"bilecik/internal/subscription"
 
@@ -15,6 +16,8 @@ import (
 )
 
 var rankMarks = [...]string{"🥇", "🥈", "🥉"}
+
+const digestHeader = "📊 Свежая сводка по подпискам"
 
 type Digester struct {
 	pricingRepository *pricing.Repository
@@ -52,25 +55,31 @@ func (d *Digester) SendDailyDigest(telegramID int64, prices []pricing.Subscripti
 }
 
 func formatDailyDigest(prices []pricing.SubscriptionBestPrice) string {
-	var b strings.Builder
-	b.WriteString("📊 Свежая сводка по твоим подпискам\n")
+	blocks := make([]string, 0, len(prices)+1)
+	blocks = append(blocks, digestHeader)
 	for _, p := range prices {
-		b.WriteString("\n")
-		b.WriteString(subscriptionHeader(p.Subscription))
-		b.WriteString("\n")
-
-		if len(p.Tiers) == 0 {
-			b.WriteString("⏳ пока нет данных о ценах\n")
-			continue
-		}
-
-		for _, tier := range p.Tiers {
-			b.WriteString(formatTier(tier))
-			b.WriteString("\n")
-		}
+		blocks = append(blocks, formatSubscriptionPrices(p))
 	}
 
-	return strings.TrimRight(b.String(), "\n")
+	return strings.Join(blocks, "\n\n")
+}
+
+func formatSubscriptionPrices(p pricing.SubscriptionBestPrice) string {
+	var b strings.Builder
+	b.WriteString(subscriptionHeader(p.Subscription))
+
+	if len(p.Tiers) == 0 {
+		b.WriteString("\n\n⏳ Пока нет данных о ценах")
+		return b.String()
+	}
+
+	b.WriteString("\n")
+	for _, tier := range p.Tiers {
+		b.WriteString("\n")
+		b.WriteString(formatTier(tier))
+	}
+
+	return b.String()
 }
 
 func subscriptionHeader(s subscription.Subscription) string {
@@ -78,7 +87,7 @@ func subscriptionHeader(s subscription.Subscription) string {
 	if s.DateFrom.Year() == s.DateTo.Year() {
 		period += fmt.Sprintf(" %d", s.DateTo.Year())
 	}
-	return fmt.Sprintf("✈️ %s → %s · %s", s.FromLabel(), s.ToLabel(), period)
+	return fmt.Sprintf("✈️ %s → %s\n- %s", s.FromLabel(), s.ToLabel(), period)
 }
 
 func formatTier(t pricing.PriceTier) string {
@@ -87,10 +96,12 @@ func formatTier(t pricing.PriceTier) string {
 		mark = rankMarks[t.Rank-1]
 	}
 
-	ranges := make([]string, len(t.Dates))
-	for i, r := range t.Dates {
-		ranges[i] = dates.FormatRange(r.From, r.To)
+	var b strings.Builder
+	fmt.Fprintf(&b, "%s %s %s:", mark, money.FormatWhole(t.Amount), t.Currency)
+	for _, r := range t.Dates {
+		b.WriteString("\n• ")
+		b.WriteString(dates.FormatRange(r.From, r.To))
 	}
 
-	return fmt.Sprintf("%s %s %s — %s", mark, t.Amount.String(), t.Currency, strings.Join(ranges, " · "))
+	return b.String()
 }

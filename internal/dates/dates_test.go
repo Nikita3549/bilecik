@@ -32,6 +32,12 @@ func TestFormatDay(t *testing.T) {
 	}
 }
 
+func TestFormatDayWithYear(t *testing.T) {
+	if got, want := FormatDayWithYear(date("2027-01-20")), "20 янв 2027"; got != want {
+		t.Errorf("FormatDayWithYear = %q, want %q", got, want)
+	}
+}
+
 func TestFormatRange(t *testing.T) {
 	cases := []struct {
 		name string
@@ -41,8 +47,8 @@ func TestFormatRange(t *testing.T) {
 	}{
 		{name: "same day", from: "2026-02-20", to: "2026-02-20", want: "20 фев"},
 		{name: "same month", from: "2026-01-20", to: "2026-01-22", want: "20–22 янв"},
-		{name: "same year different months", from: "2026-01-27", to: "2026-02-12", want: "27 янв – 12 фев"},
-		{name: "different years", from: "2026-12-28", to: "2027-01-03", want: "28 дек 2026 – 3 янв 2027"},
+		{name: "same year different months", from: "2026-01-27", to: "2026-02-12", want: "27 янв — 12 фев"},
+		{name: "different years", from: "2026-12-28", to: "2027-01-03", want: "28 дек 2026 — 3 янв 2027"},
 	}
 
 	for _, tc := range cases {

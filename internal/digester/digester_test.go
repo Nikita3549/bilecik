@@ -27,17 +27,17 @@ func TestSubscriptionHeader(t *testing.T) {
 		{
 			name: "same year appends year once",
 			sub:  subscription.Subscription{FromIATA: "MSQ", ToIATA: "IST", DateFrom: date("2026-01-20"), DateTo: date("2026-01-25")},
-			want: "✈️ MSQ → IST · 20–25 янв 2026",
+			want: "✈️ MSQ → IST\n- 20–25 янв 2026",
 		},
 		{
 			name: "cross-year keeps both years from range",
 			sub:  subscription.Subscription{FromIATA: "MSQ", ToIATA: "LED", DateFrom: date("2026-12-28"), DateTo: date("2027-01-03")},
-			want: "✈️ MSQ → LED · 28 дек 2026 – 3 янв 2027",
+			want: "✈️ MSQ → LED\n- 28 дек 2026 — 3 янв 2027",
 		},
 		{
 			name: "cities render as city (iata)",
 			sub:  subscription.Subscription{FromIATA: "MSQ", FromCity: "Минск", ToIATA: "IST", ToCity: "Стамбул", DateFrom: date("2026-01-20"), DateTo: date("2026-01-25")},
-			want: "✈️ Минск (MSQ) → Стамбул (IST) · 20–25 янв 2026",
+			want: "✈️ Минск (MSQ) → Стамбул (IST)\n- 20–25 янв 2026",
 		},
 	}
 
@@ -64,7 +64,7 @@ func TestFormatTier(t *testing.T) {
 				Currency: "BYN",
 				Dates:    []pricing.DateRange{{From: date("2026-01-25"), To: date("2026-01-26")}},
 			},
-			want: "🥇 100 BYN — 25–26 янв",
+			want: "🥇 100 BYN:\n• 25–26 янв",
 		},
 		{
 			name: "rank 3 gets medal",
@@ -74,7 +74,7 @@ func TestFormatTier(t *testing.T) {
 				Currency: "BYN",
 				Dates:    []pricing.DateRange{{From: date("2026-02-01"), To: date("2026-02-01")}},
 			},
-			want: "🥉 140 BYN — 1 фев",
+			want: "🥉 140 BYN:\n• 1 фев",
 		},
 		{
 			name: "rank beyond medals falls back to number",
@@ -84,10 +84,20 @@ func TestFormatTier(t *testing.T) {
 				Currency: "BYN",
 				Dates:    []pricing.DateRange{{From: date("2026-02-02"), To: date("2026-02-02")}},
 			},
-			want: "4) 150 BYN — 2 фев",
+			want: "4) 150 BYN:\n• 2 фев",
 		},
 		{
-			name: "multiple ranges joined",
+			name: "thousands are grouped and kopecks rounded away",
+			tier: pricing.PriceTier{
+				Rank:     1,
+				Amount:   decimal.RequireFromString("1102.37"),
+				Currency: "BYN",
+				Dates:    []pricing.DateRange{{From: date("2027-01-20"), To: date("2027-01-22")}},
+			},
+			want: "🥇 1 102 BYN:\n• 20–22 янв",
+		},
+		{
+			name: "each range gets its own bullet",
 			tier: pricing.PriceTier{
 				Rank:     1,
 				Amount:   decimal.RequireFromString("100"),
@@ -97,7 +107,7 @@ func TestFormatTier(t *testing.T) {
 					{From: date("2026-01-30"), To: date("2026-01-30")},
 				},
 			},
-			want: "🥇 100 BYN — 25–26 янв · 30 янв",
+			want: "🥇 100 BYN:\n• 25–26 янв\n• 30 янв",
 		},
 	}
 
@@ -134,11 +144,15 @@ func TestFormatDailyDigest(t *testing.T) {
 			},
 		}
 
-		want := "📊 Свежая сводка по твоим подпискам\n" +
+		want := "📊 Свежая сводка по подпискам\n" +
 			"\n" +
-			"✈️ MSQ → IST · 20 янв – 10 фев 2026\n" +
-			"🥇 100 BYN — 25–26 янв\n" +
-			"🥈 120 BYN — 30 янв"
+			"✈️ MSQ → IST\n" +
+			"- 20 янв — 10 фев 2026\n" +
+			"\n" +
+			"🥇 100 BYN:\n" +
+			"• 25–26 янв\n" +
+			"🥈 120 BYN:\n" +
+			"• 30 янв"
 		if got := formatDailyDigest(prices); got != want {
 			t.Errorf("formatDailyDigest =\n%q\nwant\n%q", got, want)
 		}
@@ -147,10 +161,12 @@ func TestFormatDailyDigest(t *testing.T) {
 	t.Run("subscription without prices", func(t *testing.T) {
 		prices := []pricing.SubscriptionBestPrice{{Subscription: sub}}
 
-		want := "📊 Свежая сводка по твоим подпискам\n" +
+		want := "📊 Свежая сводка по подпискам\n" +
 			"\n" +
-			"✈️ MSQ → IST · 20 янв – 10 фев 2026\n" +
-			"⏳ пока нет данных о ценах"
+			"✈️ MSQ → IST\n" +
+			"- 20 янв — 10 фев 2026\n" +
+			"\n" +
+			"⏳ Пока нет данных о ценах"
 		if got := formatDailyDigest(prices); got != want {
 			t.Errorf("formatDailyDigest =\n%q\nwant\n%q", got, want)
 		}

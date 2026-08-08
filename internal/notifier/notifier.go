@@ -7,6 +7,7 @@ import (
 
 	"bilecik/internal/bot"
 	"bilecik/internal/dates"
+	"bilecik/internal/money"
 	"bilecik/internal/observation"
 	"bilecik/internal/subscription"
 
@@ -18,7 +19,7 @@ import (
 // than the UTF-16 units Telegram actually counts, so the margin is safe.
 const maxMessageLen = 3500
 
-const alertHeader = "🔻 Цена упала ниже твоего порога!"
+const alertHeader = "📉 Цена упала ниже твоего порога!"
 
 type Notifier struct {
 	api                   *tgbotapi.BotAPI
@@ -71,23 +72,31 @@ func formatThresholdAlert(hits []observation.ThresholdHit) []string {
 	var (
 		messages []string
 		b        strings.Builder
+		sep      = "\n"
 	)
 	b.WriteString(alertHeader)
 
 	for _, h := range hits {
-		line := fmt.Sprintf("\n✈️ %s → %s · %s — %s %s (порог %s)",
-			subscription.PlaceLabel(h.FromCity, h.FromIATA),
-			subscription.PlaceLabel(h.ToCity, h.ToIATA),
-			dates.FormatDay(h.FlightDate),
-			h.Amount.String(), h.Currency, h.Threshold.String())
+		block := sep + formatHit(h)
 
-		if b.Len()+len(line) > maxMessageLen {
+		if b.Len()+len(block) > maxMessageLen {
 			messages = append(messages, b.String())
 			b.Reset()
 			b.WriteString(alertHeader)
+			block = "\n" + formatHit(h)
 		}
-		b.WriteString(line)
+		b.WriteString(block)
+		sep = "\n\n"
 	}
 
 	return append(messages, b.String())
+}
+
+func formatHit(h observation.ThresholdHit) string {
+	return fmt.Sprintf("✈️ %s → %s\n📅 %s\n💰 %s %s (порог: %s %s)",
+		subscription.PlaceLabel(h.FromCity, h.FromIATA),
+		subscription.PlaceLabel(h.ToCity, h.ToIATA),
+		dates.FormatDayWithYear(h.FlightDate),
+		money.Format(h.Amount), h.Currency,
+		money.Format(h.Threshold), h.Currency)
 }

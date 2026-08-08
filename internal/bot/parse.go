@@ -20,12 +20,13 @@ func parseFlightDate(s string) (time.Time, error) {
 
 func parseThreshold(s string) (decimal.NullDecimal, error) {
 	s = strings.TrimSpace(s)
-	if s == "-" {
+	switch s {
+	case "-", "–", "—":
 		return decimal.NullDecimal{}, nil
 	}
 	amount, err := decimal.NewFromString(s)
 	if err != nil {
-		return decimal.NullDecimal{}, errors.New("цена — это число, например 250, или «-» чтобы пропустить")
+		return decimal.NullDecimal{}, errors.New("цена — это число, например 250, или «–» чтобы пропустить")
 	}
 	if !amount.IsPositive() {
 		return decimal.NullDecimal{}, errors.New("цена должна быть больше нуля")

@@ -2,6 +2,7 @@ package bot
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"sync"
 	"time"
@@ -98,7 +99,7 @@ func (h *Handlers) handleStep(ctx context.Context, api *tgbotapi.BotAPI, msg *tg
 		}
 		sess.dateFrom = date
 		sess.step = stepDateTo
-		Send(api, chatID, "По какую дату? Формат ДД.ММ.ГГГГ.")
+		Send(api, chatID, stepDateToPrompt)
 
 	case stepDateTo:
 		date, err := parseFlightDate(text)
@@ -112,7 +113,7 @@ func (h *Handlers) handleStep(ctx context.Context, api *tgbotapi.BotAPI, msg *tg
 		}
 		sess.dateTo = date
 		sess.step = stepThreshold
-		Send(api, chatID, "Целевая цена в BYN? Пришли число (например 250) или «-», чтобы следить без порога.")
+		Send(api, chatID, stepThresholdPrompt)
 
 	case stepThreshold:
 		threshold, err := parseThreshold(text)
@@ -139,6 +140,18 @@ func (h *Handlers) handleStep(ctx context.Context, api *tgbotapi.BotAPI, msg *tg
 			Send(api, chatID, "Не смог сохранить подписку, попробуй позже: /subscribe")
 			return
 		}
-		Send(api, chatID, "✅ Подписка создана:\n"+formatSubscription(*sub))
+		Send(api, chatID, formatSubscriptionCreated(*sub))
 	}
+}
+
+func formatSubscriptionCreated(s subscription.Subscription) string {
+	return fmt.Sprintf(
+		"✅ Подписка успешно оформлена!\n\n"+
+			"✈️ Маршрут: %s → %s\n"+
+			"📅 Даты: %s — %s\n"+
+			"🎯 Цель: %s\n\n"+
+			"Я пришлю уведомление, как только цена упадёт до нужного уровня.",
+		s.FromLabel(), s.ToLabel(),
+		s.DateFrom.Format(dateLayout), s.DateTo.Format(dateLayout),
+		thresholdLabel(s.Threshold))
 }

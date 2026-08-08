@@ -2,24 +2,18 @@ package bot
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"strings"
 
 	"bilecik/internal/airport"
+	"bilecik/internal/money"
 	"bilecik/internal/subscription"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
 )
-
-const helpText = `Я слежу за ценами на рейсы Belavia и пишу, когда дешевеет.
-
-Команды:
-/subscribe — подписаться на маршрут (проведу по шагам)
-/list — мои подписки
-/unsubscribe ID — удалить подписку
-/cancel — прервать текущий диалог
-/help — эта справка`
 
 type Handlers struct {
 	subs     *subscription.Repository
@@ -40,7 +34,7 @@ func (h *Handlers) Interceptor() Interceptor {
 }
 
 func (h *Handlers) Start(ctx context.Context, api *tgbotapi.BotAPI, msg *tgbotapi.Message) {
-	Send(api, msg.Chat.ID, "Привет! Я bilecik — ловлю дешёвые билеты Belavia.\n\n"+helpText)
+	Send(api, msg.Chat.ID, helpText)
 }
 
 func (h *Handlers) Help(ctx context.Context, api *tgbotapi.BotAPI, msg *tgbotapi.Message) {
@@ -49,7 +43,7 @@ func (h *Handlers) Help(ctx context.Context, api *tgbotapi.BotAPI, msg *tgbotapi
 
 func (h *Handlers) Subscribe(ctx context.Context, api *tgbotapi.BotAPI, msg *tgbotapi.Message) {
 	h.sessions.start(msg.Chat.ID)
-	Send(api, msg.Chat.ID, "Откуда летим? Напиши город или аэропорт (например «Минск» или MSQ).\n\nВ любой момент — /cancel.")
+	Send(api, msg.Chat.ID, stepFromPrompt)
 }
 
 func (h *Handlers) Cancel(ctx context.Context, api *tgbotapi.BotAPI, msg *tgbotapi.Message) {
@@ -76,12 +70,11 @@ func (h *Handlers) List(ctx context.Context, api *tgbotapi.BotAPI, msg *tgbotapi
 	}
 
 	var b strings.Builder
-	b.WriteString("Твои подписки:\n\n")
-	for _, s := range subs {
-		b.WriteString(formatSubscription(s))
+	b.WriteString(listHeader)
+	for i, s := range subs {
 		b.WriteString("\n\n")
+		b.WriteString(formatSubscriptionItem(i+1, s))
 	}
-	b.WriteString("Удалить — /unsubscribe")
 	Send(api, msg.Chat.ID, b.String())
 }
 
@@ -100,12 +93,12 @@ func (h *Handlers) Unsubscribe(ctx context.Context, api *tgbotapi.BotAPI, msg *t
 	}
 
 	rows := make([][]tgbotapi.InlineKeyboardButton, 0, len(subs))
-	for _, s := range subs {
-		btn := tgbotapi.NewInlineKeyboardButtonData(subscriptionLabel(s), unsubPrefix+":"+s.ID.String())
+	for i, s := range subs {
+		btn := tgbotapi.NewInlineKeyboardButtonData(formatSubscriptionItem(i+1, s), unsubPrefix+":"+s.ID.String())
 		rows = append(rows, tgbotapi.NewInlineKeyboardRow(btn))
 	}
 
-	out := tgbotapi.NewMessage(msg.Chat.ID, "Какую подписку удалить?")
+	out := tgbotapi.NewMessage(msg.Chat.ID, unsubscribePrompt)
 	out.ReplyMarkup = tgbotapi.NewInlineKeyboardMarkup(rows...)
 	if _, err := api.Send(out); err != nil {
 		log.Printf("unsubscribe: send picker failed: %v", err)
@@ -146,17 +139,18 @@ func (h *Handlers) Fallback(ctx context.Context, api *tgbotapi.BotAPI, msg *tgbo
 	Send(api, msg.Chat.ID, "Я работаю по командам. Начни с /help")
 }
 
-func subscriptionLabel(s subscription.Subscription) string {
-	return s.FromLabel() + " → " + s.ToLabel() + "  " +
-		s.DateFrom.Format(dateLayout) + " … " + s.DateTo.Format(dateLayout)
+func formatSubscriptionItem(n int, s subscription.Subscription) string {
+	return fmt.Sprintf("✈️ %d. %s → %s\n📅 %s — %s | 🎯 %s",
+		n, s.FromLabel(), s.ToLabel(),
+		s.DateFrom.Format(dateLayout), s.DateTo.Format(dateLayout),
+		thresholdLabel(s.Threshold))
 }
 
-func formatSubscription(s subscription.Subscription) string {
-	line := subscriptionLabel(s)
-	if s.Threshold.Valid {
-		line += "\nцель: до " + s.Threshold.Decimal.String() + " BYN"
+func thresholdLabel(t decimal.NullDecimal) string {
+	if !t.Valid {
+		return "без порога"
 	}
-	return line
+	return "до " + money.Format(t.Decimal) + " BYN"
 }
 
 func Send(api *tgbotapi.BotAPI, chatID int64, text string) {

@@ -166,9 +166,9 @@ func pickerLabels(airports []airport.Airport) []string {
 func nextQuestion(s step) string {
 	switch s {
 	case stepTo:
-		return "Куда летим? Напиши город или аэропорт."
+		return stepToPrompt
 	case stepDateFrom:
-		return "С какой даты искать? Формат ДД.ММ.ГГГГ (например 01.08.2026)."
+		return stepDateFromPrompt
 	}
 	return ""
 }

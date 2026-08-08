@@ -16,15 +16,17 @@ func TestParseFlightDate(t *testing.T) {
 }
 
 func TestParseThreshold(t *testing.T) {
-	t.Run("dash skips", func(t *testing.T) {
-		got, err := parseThreshold("-")
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if got.Valid {
-			t.Errorf("dash must yield empty threshold")
-		}
-	})
+	for _, dash := range []string{"-", "–", "—"} {
+		t.Run("dash "+dash+" skips", func(t *testing.T) {
+			got, err := parseThreshold(dash)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if got.Valid {
+				t.Errorf("dash must yield empty threshold")
+			}
+		})
+	}
 
 	t.Run("positive value", func(t *testing.T) {
 		got, err := parseThreshold("250.5")

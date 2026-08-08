@@ -17,9 +17,9 @@ func hit(fromCity, toCity string, day int) observation.ThresholdHit {
 		FromCity:   fromCity,
 		ToCity:     toCity,
 		FlightDate: time.Date(2026, time.February, day, 0, 0, 0, 0, time.UTC),
-		Amount:     decimal.RequireFromString("120"),
+		Amount:     decimal.RequireFromString("1102.37"),
 		Currency:   "BYN",
-		Threshold:  decimal.RequireFromString("150"),
+		Threshold:  decimal.RequireFromString("1300.00"),
 	}
 }
 
@@ -36,8 +36,8 @@ func TestFormatThresholdAlertSingleMessage(t *testing.T) {
 	})
 
 	want := alertHeader +
-		"\n✈️ Минск (MSQ) → Стамбул (IST) · 20 фев — 120 BYN (порог 150)" +
-		"\n✈️ MSQ → IST · 21 фев — 120 BYN (порог 150)"
+		"\n✈️ Минск (MSQ) → Стамбул (IST)\n📅 20 фев 2026\n💰 1 102.37 BYN (порог: 1 300 BYN)" +
+		"\n\n✈️ MSQ → IST\n📅 21 фев 2026\n💰 1 102.37 BYN (порог: 1 300 BYN)"
 
 	if len(messages) != 1 {
 		t.Fatalf("got %d messages, want 1", len(messages))
